@@ -13,7 +13,6 @@ npx hardhat ignition deploy ./ignition/modules/PledgePool.js
 
 ## 部署 multiSignature 到 sepolia
 
-敲黑板
 !!! 需要先部署 multiSignature 到 sepolia ，然后 注意 那3管理员钱包地址，写你自己的，可以交互控制！！！
 ```js
 // scripts/deploy/multiSignature.js
@@ -32,7 +31,6 @@ npx hardhat run scripts/deploy/multiSignature.js --network sepolia
 
 ## 部署 debtToken 到 sepolia
 
-敲黑板
 ！！！这里 multiSignatureAddress 取上面部署得到的地址！！！
 ```js
 // scripts/deploy/debtToken.js
