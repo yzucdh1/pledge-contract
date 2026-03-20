@@ -5,7 +5,7 @@ pragma solidity 0.6.12;
 
 import "./SafeErc20.sol";
 
-contract SafeTransfer{
+contract SafeTransfer {
 
     using SafeERC20 for IERC20;
     event Redeem(address indexed recieptor,address indexed token,uint256 amount);
@@ -17,10 +17,10 @@ contract SafeTransfer{
      * @param amount of amount
      * @return return amount
      */
-    function getPayableAmount(address token,uint256 amount) internal returns (uint256) {
-        if (token == address(0)){
+    function getPayableAmount(address token, uint256 amount) internal returns (uint256) {
+        if (token == address(0)) {
             amount = msg.value;
-        }else if (amount > 0){
+        } else if (amount > 0) {
             IERC20 oToken = IERC20(token);
             oToken.safeTransferFrom(msg.sender, address(this), amount);
         }

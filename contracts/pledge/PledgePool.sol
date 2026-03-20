@@ -1,5 +1,4 @@
 // SPDX-License-Identifier: MIT
-
 pragma solidity 0.6.12;
 
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
@@ -9,9 +8,7 @@ import "../interface/IBscPledgeOracle.sol";
 import "../interface/IUniswapV2Router02.sol";
 import "../multiSignature/multiSignatureClient.sol";
 
-
-
-contract PledgePool is ReentrancyGuard, SafeTransfer, multiSignatureClient{
+contract PledgePool is ReentrancyGuard, SafeTransfer, multiSignatureClient {
 
     using SafeMath for uint256;
     using SafeERC20 for IERC20;
@@ -37,7 +34,7 @@ contract PledgePool is ReentrancyGuard, SafeTransfer, multiSignatureClient{
     uint256 public lendFee;
     uint256 public borrowFee;
 
-        // 每个池的基本信息
+    // 每个池的基本信息
     struct PoolBaseInfo{
         uint256 settleTime;         // 结算时间
         uint256 endTime;            // 结束时间
@@ -56,7 +53,7 @@ contract PledgePool is ReentrancyGuard, SafeTransfer, multiSignatureClient{
     // total base pool.
     PoolBaseInfo[] public poolBaseInfo;
 
-       // 每个池的数据信息
+    // 每个池的数据信息
     struct PoolDataInfo{
         uint256 settleAmountLend;       // 结算时的实际出借金额
         uint256 settleAmountBorrow;     // 结算时的实际借款金额
@@ -85,12 +82,11 @@ contract PledgePool is ReentrancyGuard, SafeTransfer, multiSignatureClient{
         bool hasNoRefund;             // 默认为false，false = 无退款，true = 已退款
         bool hasNoClaim;              // 默认为false，false = 无索赔，true = 已索赔
     }
-
     // Info of each user that stakes tokens.  {user.address : {pool.index : user.lendInfo}}
     mapping (address => mapping (uint256 => LendInfo)) public userLendInfo;
 
-        // 事件
-        // 存款借出事件，from是借出者地址，token是借出的代币地址，amount是借出的数量，mintAmount是生成的数量
+    // 事件
+    // 存款借出事件，from是借出者地址，token是借出的代币地址，amount是借出的数量，mintAmount是生成的数量
     event DepositLend(address indexed from,address indexed token,uint256 amount,uint256 mintAmount); 
     // 借出退款事件，from是退款者地址，token是退款的代币地址，refund是退款的数量
     event RefundLend(address indexed from, address indexed token, uint256 refund); 
@@ -144,7 +140,7 @@ contract PledgePool is ReentrancyGuard, SafeTransfer, multiSignatureClient{
      * @dev Set the lend fee and borrow fee
      * @notice Only allow administrators to operate
      */
-    function setFee(uint256 _lendFee,uint256 _borrowFee) validCall external{
+    function setFee(uint256 _lendFee,uint256 _borrowFee) validCall external {
         lendFee = _lendFee;
         borrowFee = _borrowFee;
         emit SetFee(_lendFee, _borrowFee);
@@ -154,7 +150,7 @@ contract PledgePool is ReentrancyGuard, SafeTransfer, multiSignatureClient{
      * @dev Set swap router address, example pancakeswap or babyswap..
      * @notice Only allow administrators to operate
      */
-    function setSwapRouterAddress(address _swapRouter) validCall external{
+    function setSwapRouterAddress(address _swapRouter) validCall external {
         require(_swapRouter != address(0), "Is zero address");
         emit SetSwapRouterAddress(swapRouter,_swapRouter);
         swapRouter = _swapRouter;
@@ -178,7 +174,6 @@ contract PledgePool is ReentrancyGuard, SafeTransfer, multiSignatureClient{
         minAmount = _minAmount;
     }
 
-
      /**
      * @dev Query pool length
      */
@@ -192,7 +187,7 @@ contract PledgePool is ReentrancyGuard, SafeTransfer, multiSignatureClient{
      */
     function createPoolInfo(uint256 _settleTime,  uint256 _endTime, uint64 _interestRate,
                         uint256 _maxSupply, uint256 _martgageRate, address _lendToken, address _borrowToken,
-                    address _spToken, address _jpToken, uint256 _autoLiquidateThreshold) public validCall{
+                    address _spToken, address _jpToken, uint256 _autoLiquidateThreshold) public validCall {
         // 检查是否已设置token ...
         // 需要结束时间大于结算时间
         require(_endTime > _settleTime, "createPool:end time grate than settle time");
@@ -215,7 +210,7 @@ contract PledgePool is ReentrancyGuard, SafeTransfer, multiSignatureClient{
             state: defaultChoice,
             spCoin: IDebtToken(_spToken),
             jpCoin: IDebtToken(_jpToken),
-            autoLiquidateThreshold:_autoLiquidateThreshold
+            autoLiquidateThreshold: _autoLiquidateThreshold
         }));
         // 推入池数据信息
         poolDataInfo.push(PoolDataInfo({
@@ -248,7 +243,7 @@ contract PledgePool is ReentrancyGuard, SafeTransfer, multiSignatureClient{
         LendInfo storage lendInfo = userLendInfo[msg.sender][_pid];
         // 边界条件
         require(_stakeAmount <= (pool.maxSupply).sub(pool.lendSupply), "depositLend: 数量超过限制");
-        uint256 amount = getPayableAmount(pool.lendToken,_stakeAmount);
+        uint256 amount = getPayableAmount(pool.lendToken, _stakeAmount);
         require(amount > minAmount, "depositLend: 少于最小金额");
         // 保存借款用户信息
         lendInfo.hasNoClaim = false;
@@ -293,7 +288,7 @@ contract PledgePool is ReentrancyGuard, SafeTransfer, multiSignatureClient{
      * @notice 池状态不等于匹配和未完成
      * @param _pid 是池索引
      */
-    function claimLend(uint256 _pid) external nonReentrant notPause timeAfter(_pid) stateNotMatchUndone(_pid){
+    function claimLend(uint256 _pid) external nonReentrant notPause timeAfter(_pid) stateNotMatchUndone(_pid) {
         PoolBaseInfo storage pool = poolBaseInfo[_pid]; // 获取池的基本信息
         PoolDataInfo storage data = poolDataInfo[_pid]; // 获取池的数据信息
         LendInfo storage lendInfo = userLendInfo[msg.sender][_pid]; // 获取用户的借款信息
@@ -306,8 +301,8 @@ contract PledgePool is ReentrancyGuard, SafeTransfer, multiSignatureClient{
         uint256 totalSpAmount = data.settleAmountLend; // 总的Sp金额等于借款结算金额
         // 用户 sp 金额 = totalSpAmount * 用户份额
         uint256 spAmount = totalSpAmount.mul(userShare).div(calDecimal); 
-        // 铸造 sp token
-        pool.spCoin.mint(msg.sender, spAmount); 
+        // 铸造 sp token mint之前必须是矿工, 让Pool合约成为矿工
+        pool.spCoin.mint(msg.sender, spAmount);
         // 更新领取标志
         lendInfo.hasNoClaim = true; 
         emit ClaimLend(msg.sender, pool.borrowToken, spAmount); // 触发领取借款事件
@@ -323,14 +318,14 @@ contract PledgePool is ReentrancyGuard, SafeTransfer, multiSignatureClient{
         PoolBaseInfo storage pool = poolBaseInfo[_pid];
         PoolDataInfo storage data = poolDataInfo[_pid];
         require(_spAmount > 0, 'withdrawLend: 取款金额为零');
-        // 销毁 sp_token
-        pool.spCoin.burn(msg.sender,_spAmount);
+        // Pool合约销毁 sp_token
+        pool.spCoin.burn(msg.sender, _spAmount);
         // 计算销毁份额
         uint256 totalSpAmount = data.settleAmountLend;
         // sp份额 = _spAmount/totalSpAmount
         uint256 spShare = _spAmount.mul(calDecimal).div(totalSpAmount);
         // 完成
-        if (pool.state == PoolState.FINISH){
+        if (pool.state == PoolState.FINISH) {
             require(block.timestamp > pool.endTime, "withdrawLend: 少于结束时间");
             // 赎回金额 = finishAmountLend * sp份额
             uint256 redeemAmount = data.finishAmountLend.mul(spShare).div(calDecimal);
@@ -369,14 +364,12 @@ contract PledgePool is ReentrancyGuard, SafeTransfer, multiSignatureClient{
         emit EmergencyLendWithdrawal(msg.sender, pool.lendToken, lendInfo.stakeAmount); // 触发紧急贷款提款事件
     }
 
-
-
        /**
      * @dev 借款人质押操作
      * @param _pid 是池子索引
      * @param _stakeAmount 是用户质押的数量
      */
-    function depositBorrow(uint256 _pid, uint256 _stakeAmount ) external payable nonReentrant notPause timeBefore(_pid) stateMatch(_pid){
+    function depositBorrow(uint256 _pid, uint256 _stakeAmount) external payable nonReentrant notPause timeBefore(_pid) stateMatch(_pid){
         // 基础信息
         PoolBaseInfo storage pool = poolBaseInfo[_pid]; // 获取池子基础信息
         BorrowInfo storage borrowInfo = userBorrowInfo[msg.sender][_pid]; // 获取用户借款信息
@@ -387,7 +380,7 @@ contract PledgePool is ReentrancyGuard, SafeTransfer, multiSignatureClient{
         borrowInfo.hasNoClaim = false; // 设置用户未提取质押物
         borrowInfo.hasNoRefund = false; // 设置用户未退款
         // 更新信息
-        if (pool.borrowToken == address(0)){ // 如果借款代币是0地址（即ETH）
+        if (pool.borrowToken == address(0)) { // 如果借款代币是0地址（即ETH）
             borrowInfo.stakeAmount = borrowInfo.stakeAmount.add(msg.value); // 更新用户质押金额
             pool.borrowSupply = pool.borrowSupply.add(msg.value); // 更新池子借款供应量
         } else{ // 如果借款代币不是0地址（即其他ERC20代币）
@@ -427,7 +420,7 @@ contract PledgePool is ReentrancyGuard, SafeTransfer, multiSignatureClient{
      * @notice 池状态不等于匹配和未完成
      * @param _pid 是池状态
      */
-    function claimBorrow(uint256 _pid) external nonReentrant notPause timeAfter(_pid) stateNotMatchUndone(_pid)  {
+    function claimBorrow(uint256 _pid) external nonReentrant notPause timeAfter(_pid) stateNotMatchUndone(_pid) {
         // 池基本信息
         PoolBaseInfo storage pool = poolBaseInfo[_pid];
         PoolDataInfo storage data = poolDataInfo[_pid];
@@ -443,13 +436,13 @@ contract PledgePool is ReentrancyGuard, SafeTransfer, multiSignatureClient{
         pool.jpCoin.mint(msg.sender, jpAmount);
         // 索取贷款资金
         uint256 borrowAmount = data.settleAmountLend.mul(userShare).div(calDecimal);
-        _redeem(msg.sender,pool.lendToken,borrowAmount);
+        _redeem(msg.sender, pool.lendToken, borrowAmount);
         // 更新用户信息
         borrowInfo.hasNoClaim = true;
         emit ClaimBorrow(msg.sender, pool.borrowToken, jpAmount);
     }
 
-       /**
+    /**
      * @dev 借款人提取剩余的保证金，这个函数首先检查提取的金额是否大于0，然后销毁相应数量的JPtoken。接着，它计算JPtoken的份额，并根据池的状态（完成或清算）进行相应的操作。如果池的状态是完成，它会检查当前时间是否大于结束时间，然后计算赎回金额并进行赎回。如果池的状态是清算，它会检查当前时间是否大于匹配时间，然后计算赎回金额并进行赎回。
      * @param _pid 是池状态
      * @param _jpAmount 是用户销毁JPtoken的数量
@@ -470,7 +463,7 @@ contract PledgePool is ReentrancyGuard, SafeTransfer, multiSignatureClient{
             // 要求当前时间大于结束时间
             require(block.timestamp > pool.endTime, "withdrawBorrow: less than end time");
             uint256 redeemAmount = jpShare.mul(data.finishAmountBorrow).div(calDecimal);
-            _redeem(msg.sender,pool.borrowToken,redeemAmount);
+            _redeem(msg.sender, pool.borrowToken, redeemAmount);
             emit WithdrawBorrow(msg.sender, pool.borrowToken, _jpAmount, redeemAmount);
         }
         // 清算状态
@@ -478,11 +471,12 @@ contract PledgePool is ReentrancyGuard, SafeTransfer, multiSignatureClient{
             // 要求当前时间大于匹配时间
             require(block.timestamp > pool.settleTime, "withdrawBorrow: less than match time");
             uint256 redeemAmount = jpShare.mul(data.liquidationAmounBorrow).div(calDecimal);
-            _redeem(msg.sender,pool.borrowToken,redeemAmount);
+            _redeem(msg.sender, pool.borrowToken, redeemAmount);
             emit WithdrawBorrow(msg.sender, pool.borrowToken, _jpAmount, redeemAmount);
         }
     }
-       /**
+
+    /**
      * @dev 紧急借款提取
      * @notice 在极端情况下，总存款为0，或者总保证金为0，在某些极端情况下，如总存款为0或总保证金为0时，借款者可以进行紧急提取。首先，代码会获取池子的基本信息和借款者的借款信息，然后检查借款供应和借款者的质押金额是否大于0，以及借款者是否已经进行过退款。如果这些条件都满足，那么就会执行赎回操作，并标记借款者已经退款。最后，触发一个紧急借款提取的事件。
      * @param _pid 是池子的索引
@@ -499,7 +493,7 @@ contract PledgePool is ReentrancyGuard, SafeTransfer, multiSignatureClient{
         // 确保借款者没有进行过退款
         require(!borrowInfo.hasNoRefund, "refundBorrow: again refund");
         // 执行赎回操作
-        _redeem(msg.sender,pool.borrowToken,borrowInfo.stakeAmount);
+        _redeem(msg.sender, pool.borrowToken, borrowInfo.stakeAmount);
         // 标记借款者已经退款
         borrowInfo.hasNoRefund = true;
         // 触发紧急借款提取事件
@@ -510,7 +504,7 @@ contract PledgePool is ReentrancyGuard, SafeTransfer, multiSignatureClient{
      * @dev Can it be settle
      * @param _pid is pool index
      */
-    function checkoutSettle(uint256 _pid) public view returns(bool){
+    function checkoutSettle(uint256 _pid) public view returns(bool) {
         return block.timestamp > poolBaseInfo[_pid].settleTime;
     }
 
@@ -561,7 +555,7 @@ contract PledgePool is ReentrancyGuard, SafeTransfer, multiSignatureClient{
      * @dev Can it be finish
      * @param _pid is pool index
      */
-    function checkoutFinish(uint256 _pid) public view returns(bool){
+    function checkoutFinish(uint256 _pid) public view returns(bool) {
         return block.timestamp > poolBaseInfo[_pid].endTime;
     }
 
@@ -624,7 +618,7 @@ contract PledgePool is ReentrancyGuard, SafeTransfer, multiSignatureClient{
 
 
       /**
-     * @dev 检查清算条件,它首先获取了池子的基础信息和数据信息，然后计算了保证金的当前价值和清算阈值，最后比较了这两个值，如果保证金的当前价值小于清算阈值，那么就满足清算条件，函数返回true，否则返回false。
+     * @dev keeper机器人轮询检查清算条件,它首先获取了池子的基础信息和数据信息，然后计算了保证金的当前价值和清算阈值，最后比较了这两个值，如果保证金的当前价值小于清算阈值，那么就满足清算条件，函数返回true，否则返回false。
      * @param _pid 是池子的索引
      */
     function checkoutLiquidate(uint256 _pid) external view returns(bool) {
@@ -666,7 +660,7 @@ contract PledgePool is ReentrancyGuard, SafeTransfer, multiSignatureClient{
             // 贷款费用
             _redeem(feeAddress,pool.lendToken, feeAmount);
             data.liquidationAmounLend = amountIn.sub(feeAmount);
-        }else {
+        } else {
             data.liquidationAmounLend = amountIn;
         }
         // liquidationAmounBorrow  借款费用
@@ -678,7 +672,6 @@ contract PledgePool is ReentrancyGuard, SafeTransfer, multiSignatureClient{
          // 事件
         emit StateChange(_pid,uint256(PoolState.EXECUTION), uint256(PoolState.LIQUIDATION));
     }
-
 
       /**
      * @dev 费用计算,计算并赎回费用。首先，它计算费用，这是通过乘以费率并除以基数来完成的。如果计算出的费用大于0，它将从费用地址赎回相应的费用。最后，它返回的是原始金额减去费用。
@@ -694,8 +687,6 @@ contract PledgePool is ReentrancyGuard, SafeTransfer, multiSignatureClient{
         // 返回金额减去费用
         return amount.sub(fee);
     }
-
-
 
     /**
      * @dev Get the swap path
@@ -760,7 +751,7 @@ contract PledgePool is ReentrancyGuard, SafeTransfer, multiSignatureClient{
        /**
      * @dev 获取最新的预言机价格
      */
-    function getUnderlyingPriceView(uint256 _pid) public view returns(uint256[2]memory){
+    function getUnderlyingPriceView(uint256 _pid) public view returns(uint256[2]memory) {
         // 从基础池中获取指定的池
         PoolBaseInfo storage pool = poolBaseInfo[_pid];
         // 创建一个新的数组来存储资产
@@ -786,7 +777,6 @@ contract PledgePool is ReentrancyGuard, SafeTransfer, multiSignatureClient{
         _;
     }
 
-
     modifier timeBefore(uint256 _pid) {
         require(block.timestamp < poolBaseInfo[_pid].settleTime, "Less than this time");
         _;
@@ -796,7 +786,6 @@ contract PledgePool is ReentrancyGuard, SafeTransfer, multiSignatureClient{
         require(block.timestamp > poolBaseInfo[_pid].settleTime, "Greate than this time");
         _;
     }
-
 
     modifier stateMatch(uint256 _pid) {
         require(poolBaseInfo[_pid].state == PoolState.MATCH, "state: Pool status is not equal to match");
