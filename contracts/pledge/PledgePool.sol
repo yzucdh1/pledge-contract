@@ -222,6 +222,7 @@ contract PledgePool is ReentrancyGuard, SafeTransfer, multiSignatureClient {
             liquidationAmounBorrow:0
         }));
     }
+
       /**
      * @dev Get pool state
      * @notice returned is an int integer
@@ -589,24 +590,24 @@ contract PledgePool is ReentrancyGuard, SafeTransfer, multiSignatureClient {
         uint256 sellAmount = lendAmount.mul(lendFee.add(baseDecimal)).div(baseDecimal);
 
         // 执行交换操作
-        (uint256 amountSell,uint256 amountIn) = _sellExactAmount(swapRouter,token0,token1,sellAmount);
+        (uint256 amountSell, uint256 amountOut) = _sellExactAmount(swapRouter, token0, token1, sellAmount);
 
         // 验证交换后的金额是否大于等于贷款金额
-        require(amountIn >= lendAmount, "finish: Slippage is too high");
+        require(amountOut >= lendAmount, "finish: Slippage is too high");
 
         // 如果交换后的金额大于贷款金额，计算费用并赎回
-        if (amountIn > lendAmount) {
-            uint256 feeAmount = amountIn.sub(lendAmount) ;
+        if (amountOut > lendAmount) {
+            uint256 feeAmount = amountOut.sub(lendAmount) ;
             // 贷款费
-            _redeem(feeAddress,pool.lendToken, feeAmount);
-            data.finishAmountLend = amountIn.sub(feeAmount);
-        }else {
-            data.finishAmountLend = amountIn;
+            _redeem(feeAddress, pool.lendToken, feeAmount);
+            data.finishAmountLend = amountOut.sub(feeAmount);
+        } else {
+            data.finishAmountLend = amountOut;
         }
 
         // 计算剩余的借款金额并赎回借款费
         uint256 remianNowAmount = data.settleAmountBorrow.sub(amountSell);
-        uint256 remianBorrowAmount = redeemFees(borrowFee,pool.borrowToken,remianNowAmount);
+        uint256 remianBorrowAmount = redeemFees(borrowFee, pool.borrowToken, remianNowAmount);
         data.finishAmountBorrow = remianBorrowAmount;
 
         // 更新池子状态为完成
@@ -615,7 +616,6 @@ contract PledgePool is ReentrancyGuard, SafeTransfer, multiSignatureClient {
         // 触发状态改变事件
         emit StateChange(_pid,uint256(PoolState.EXECUTION), uint256(PoolState.FINISH));
     }
-
 
       /**
      * @dev keeper机器人轮询检查清算条件,它首先获取了池子的基础信息和数据信息，然后计算了保证金的当前价值和清算阈值，最后比较了这两个值，如果保证金的当前价值小于清算阈值，那么就满足清算条件，函数返回true，否则返回false。
@@ -653,16 +653,17 @@ contract PledgePool is ReentrancyGuard, SafeTransfer, multiSignatureClient {
         // sellamount = lendAmount*(1+lendFee)
         // 添加贷款费用
         uint256 sellAmount = lendAmount.mul(lendFee.add(baseDecimal)).div(baseDecimal);
-        (uint256 amountSell,uint256 amountIn) = _sellExactAmount(swapRouter,token0,token1,sellAmount); // 卖出准确的金额
+        (uint256 amountSell,uint256 amountOut) = _sellExactAmount(swapRouter,token0,token1,sellAmount); // 卖出准确的金额
         // 可能会有滑点，amountIn - lendAmount < 0;
-        if (amountIn > lendAmount) {
-            uint256 feeAmount = amountIn.sub(lendAmount) ; // 费用金额
+        if (amountOut > lendAmount) {
+            uint256 feeAmount = amountOut.sub(lendAmount) ; // 费用金额
             // 贷款费用
             _redeem(feeAddress,pool.lendToken, feeAmount);
-            data.liquidationAmounLend = amountIn.sub(feeAmount);
+            data.liquidationAmounLend = amountOut.sub(feeAmount);
         } else {
-            data.liquidationAmounLend = amountIn;
+            data.liquidationAmounLend = amountOut;
         }
+
         // liquidationAmounBorrow  借款费用
         uint256 remianNowAmount = data.settleAmountBorrow.sub(amountSell); // 剩余的现在的金额
         uint256 remianBorrowAmount = redeemFees(borrowFee,pool.borrowToken,remianNowAmount); // 剩余的借款金额
@@ -676,13 +677,13 @@ contract PledgePool is ReentrancyGuard, SafeTransfer, multiSignatureClient {
       /**
      * @dev 费用计算,计算并赎回费用。首先，它计算费用，这是通过乘以费率并除以基数来完成的。如果计算出的费用大于0，它将从费用地址赎回相应的费用。最后，它返回的是原始金额减去费用。
      */
-    function redeemFees(uint256 feeRatio,address token,uint256 amount) internal returns (uint256){
+    function redeemFees(uint256 feeRatio, address token, uint256 amount) internal returns (uint256) {
         // 计算费用，费用 = 金额 * 费率 / 基数
         uint256 fee = amount.mul(feeRatio)/baseDecimal;
         // 如果费用大于0
-        if (fee>0){
+        if (fee > 0) {
             // 从费用地址赎回相应的费用
-            _redeem(feeAddress,token, fee);
+            _redeem(feeAddress, token, fee);
         }
         // 返回金额减去费用
         return amount.sub(fee);

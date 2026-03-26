@@ -41,12 +41,15 @@ library whiteListAddress {
 contract multiSignature is multiSignatureClient {
     uint256 private constant defaultIndex = 0;
     using whiteListAddress for address[];
+
     address[] public signatureOwners;
     uint256 public threshold;
+
     struct signatureInfo {
         address applicant;
         address[] signatures;
     }
+
     mapping(bytes32=>signatureInfo[]) public signatureMap;
 
     event TransferOwner(address indexed sender,address indexed oldOwner,address indexed newOwner);
